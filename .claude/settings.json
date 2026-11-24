@@ -1,1 +1,13 @@
-{}
+{
+  "permissions": {
+    "allow": [
+      "Edit(shorts-jobs/**)",
+      "Bash",
+      "WebFetch",
+      "WebSearch",
+      "Skill",
+      "Agent",
+      "mcp__claude_ai_OpenArt__*"
+    ]
+  }
+}

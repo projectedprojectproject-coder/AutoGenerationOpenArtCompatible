@@ -100,6 +100,14 @@ projects/
 # Async video jobs (tools/video_job.py): state, logs, project copies and renders
 jobs/
 
+# Shorts pipeline jobs (shorts-pipeline skill / tools/shorts_cli.py / tools/shorts_gui.py)
+shorts-jobs/
+
+# PyInstaller build output for the Shorts Maker GUI (build-exe.ps1 regenerates these)
+build_pyinstaller/
+*.spec
+/Shorts Maker.exe
+
 # Kits (tools/video_job.py): people's photos and voices stay local; only the README and the example are tracked
 kits/*
 !kits/README.md
