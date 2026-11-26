@@ -65,6 +65,15 @@ uv run tools/shorts_cli.py run --topic "문어는 왜 심장이 3개나 될까?"
 9. **subtitles / subtitles-qa-looper**: 자막 생성, 번인 및 정합성 검수 (최대 5루프)
 10. **publisher**: 최종 품질 검수(규격, 길이, 내용 정합성, 전체적인 자연스러움), 승인 후 유튜브 업로드는 채널을 보여주고 사람 승인을 받은 뒤에만 진행 (최대 7루프)
 
+## 예시
+
+[examples/flamingo-one-leg](examples/flamingo-one-leg)에 실제로 돌린 결과물 두 개를 올려뒀습니다.
+
+- [source-clip.mp4](examples/flamingo-one-leg/source-clip.mp4): OpenArt가 만든 가공 전 원본 영상(음성, 타이틀, 자막 없음)
+- [final.mp4](examples/flamingo-one-leg/final.mp4): 같은 작업에서 나온 최종 완성본(21.9초, 내레이션/상단 타이틀/자막 전부 포함)
+
+주제는 "플라밍고는 왜 한 다리로 서있을까?"였고, 중간에 publisher가 한 씬의 내용 불일치를 실제로 잡아내서 재생성한 과정까지 [examples/flamingo-one-leg/README.md](examples/flamingo-one-leg/README.md)에 적어뒀습니다.
+
 ## 더 알아보기
 
 이 저장소는 [claude-code-video-toolkit](https://github.com/digitalsamba/claude-code-video-toolkit)을 통째로 기반으로 하고 있어서, Shorts Maker 외에도 Remotion 기반 영상 템플릿, 브랜드 프로필, FFmpeg/ElevenLabs/Blender 등 다양한 도구가 `tools/`, `templates/`, `docs/`에 함께 들어 있습니다. 그 쪽을 쓰고 싶다면 원본 저장소의 README와 `docs/`를 참고하세요. 라이선스는 MIT입니다 ([LICENSE](LICENSE)).

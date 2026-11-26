@@ -52,6 +52,8 @@ out/
 # the LTX clip in Made with itself's Generate scene (0.5 MB), so the example renders as published
 !examples/toolkit-made-itself/public/video/desk.mp4
 !examples/ds-crt-stinger/ds_stinger_astro.gif
+# Shorts Maker worked example: the raw OpenArt clip and the finished pipeline output the README links to
+!examples/flamingo-one-leg/*.mp4
 
 # Remotion
 .remotion/
