@@ -20,8 +20,10 @@ from shorts_common import (  # noqa: E402
     ROOT,
     build_pipeline_prompt,
     check_claude_auth,
+    check_higgsfield_mcp,
     check_toolchain_status,
     check_youtube,
+    connect_higgsfield_mcp,
     ensure_full_toolchain,
     find_final_mp4,
     get_env_var,
@@ -75,12 +77,17 @@ def cmd_install(_: argparse.Namespace) -> int:
             print("  건너뛰었습니다 -- 나중에 .env에 직접 추가하거나 install을 다시 실행하세요.")
 
     print("\n[3/4] 영상 생성 서비스: OpenArt 또는 Higgsfield")
-    choice = prompt("  어느 쪽을 쓸까요? (openart/higgsfield)", "higgsfield").lower()
+    choice = prompt("  어느 쪽을 쓸까요? (openart/higgsfield-api/higgsfield-mcp)", "higgsfield-api").lower()
     if choice.startswith("o"):
         print("  OpenArt는 API 키가 아니라 Claude Code의 MCP 커넥터(OAuth)로 연결됩니다.")
         print("  Claude Code 세션에서 /mcp (또는 Claude 데스크탑 앱의 커넥터 설정)를 열어")
         print("  OpenArt 계정으로 로그인해서 연결해주세요 -- 이 스크립트가 대신 해줄 수는 없습니다.")
         input("  연결을 마쳤으면 Enter를 눌러 계속하세요 (지금 건너뛰려면 그냥 Enter)...")
+    elif "mcp" in choice:
+        print("  Higgsfield의 공식 호스팅 MCP(mcp.higgsfield.ai)를 claude CLI에 등록합니다 (API 키 불필요).")
+        print("  유료 구독 계정이 필요하고, 등록 후 다음에 claude를 쓸 때 브라우저 로그인(OAuth)이 한 번 더 필요합니다.")
+        if prompt_yes_no("  지금 등록할까요?", True):
+            connect_higgsfield_mcp(on_line=print)
     else:
         key_id = prompt("  HIGGSFIELD_KEY_ID (console.higgsfield.ai에서 발급)")
         key_secret = getpass("  HIGGSFIELD_KEY_SECRET (입력이 화면에 표시되지 않습니다): ").strip()
@@ -123,9 +130,11 @@ def cmd_install(_: argparse.Namespace) -> int:
     print("\n설치 단계를 마쳤습니다. 연결 상태를 확인합니다...\n")
     print("  ElevenLabs:", "OK" if get_env_var("ELEVENLABS_API_KEY") else "미설정")
     print(
-        "  Higgsfield:",
-        "OK" if get_env_var("HIGGSFIELD_KEY_ID") and get_env_var("HIGGSFIELD_KEY_SECRET") else "미설정 (OpenArt MCP를 쓴다면 무시해도 됨)",
+        "  Higgsfield (API 키):",
+        "OK" if get_env_var("HIGGSFIELD_KEY_ID") and get_env_var("HIGGSFIELD_KEY_SECRET") else "미설정",
     )
+    print("  Higgsfield (MCP):", "등록됨" if check_higgsfield_mcp() else "미등록")
+    print("  (OpenArt MCP나 위 둘 중 하나만 있으면 됩니다.)")
     data = check_youtube()
     ch = (data or {}).get("channel")
     print("  YouTube:", f"OK ({ch['title']})" if ch else f"미연결 ({(data or {}).get('auth') or (data or {}).get('error') or '확인 필요'})")

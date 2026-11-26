@@ -190,6 +190,13 @@ def build_pipeline_prompt(job_id: str, topic: str, duration: int, upload: bool, 
         "모드, 완료 보고 등)은 spawner.md에 적힌 대로 spawner 서브에이전트에게 맡겨도 된다 -- MCP 호출 부분만 "
         "예외다.\n"
         "\n"
+        "**Higgsfield도 MCP 경로(공식 호스팅 MCP, https://mcp.higgsfield.ai/mcp)로 연결돼 있으면 같은 이유로 "
+        "똑같이 예외다.** `.env`에 `HIGGSFIELD_KEY_ID`/`HIGGSFIELD_KEY_SECRET`가 없고 대신 이름이 "
+        "higgsfield_generate_video 등으로 끝나는 MCP 도구가 보이면, spawner를 부르지 말고 네가 직접 "
+        "spawner.md의 'Higgsfield MCP 호출 흐름' 절차를 수행해서 `shorts-jobs/<id>/assets/`를 채워라. "
+        "API 키가 있으면 평소처럼 spawner 서브에이전트(REST 경로)를 그대로 쓴다 -- 둘 다 있으면 API 키 경로를 "
+        "우선한다(이미 연결돼 있고 서브에이전트가 바로 쓸 수 있어서 더 간단하다).\n"
+        "\n"
         "**음성(TTS)도 마찬가지 원칙이다**: `.env`에 `ELEVENLABS_API_KEY`가 있으면 tts-spawner 서브에이전트가 "
         "`tools/voiceover.py`로 그대로 처리한다(Bash라서 서브에이전트도 쓸 수 있다). 키가 없고 대신 ElevenLabs "
         "MCP 도구(이름이 text_to_speech 등으로 끝나는 도구)가 보이면, 그때는 OpenArt와 같은 이유로 **네가 "
@@ -528,6 +535,83 @@ def login_claude_cli(on_line=None, timeout: float = 180.0) -> bool:
     ok = check_claude_auth()
     if on_line:
         on_line("로그인 완료." if ok else "로그인이 완료되지 않았습니다.")
+    return ok
+
+
+def check_higgsfield_mcp() -> bool:
+    """Is Higgsfield's official MCP server (https://mcp.higgsfield.ai/mcp) registered with this
+    machine's `claude` CLI config? (`claude mcp add ... higgsfield ...` was run successfully.)
+
+    This only checks registration, not whether the one-time browser OAuth for it has been
+    completed -- that happens the first time a session actually calls one of its tools.
+    """
+    if not shutil.which("claude"):
+        return False
+    try:
+        r = subprocess.run(
+            _windows_safe_argv(["claude", "mcp", "list"]),
+            cwd=ROOT,
+            env=utf8_env(),
+            encoding="utf-8",
+            errors="replace",
+            capture_output=True,
+            timeout=15,
+        )
+        return "higgsfield" in r.stdout.lower()
+    except Exception:
+        return False
+
+
+def connect_higgsfield_mcp(on_line=None, timeout: float = 60.0) -> bool:
+    """Register Higgsfield's official hosted MCP server with the `claude` CLI
+    (`claude mcp add --transport http --scope user higgsfield https://mcp.higgsfield.ai/mcp`).
+
+    This only adds the server to the config -- it needs an active Higgsfield subscription, and
+    the one-time browser OAuth login still has to happen once (Claude Code prompts for it the
+    first time a session actually calls one of its tools, e.g. the next time spawner/orchestrator
+    runs with Higgsfield selected). `--scope user` makes it available to every project, matching
+    how `claude auth login` is a one-time, per-machine step elsewhere in this file.
+    """
+    if not shutil.which("claude"):
+        if on_line:
+            on_line("claude CLI가 설치되어 있지 않습니다. 먼저 필수 프로그램을 설치해주세요.")
+        return False
+    try:
+        proc = subprocess.Popen(
+            _windows_safe_argv(
+                ["claude", "mcp", "add", "--transport", "http", "--scope", "user", "higgsfield", "https://mcp.higgsfield.ai/mcp"]
+            ),
+            cwd=ROOT,
+            env=utf8_env(),
+            encoding="utf-8",
+            errors="replace",
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            bufsize=1,
+        )
+    except OSError as exc:
+        if on_line:
+            on_line(f"등록 실행 실패: {exc}")
+        return False
+    assert proc.stdout is not None
+    for line in proc.stdout:
+        if on_line:
+            on_line(line.rstrip("\n"))
+    try:
+        proc.wait(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        if on_line:
+            on_line("등록 대기 시간이 지났습니다.")
+        return False
+    ok = check_higgsfield_mcp()
+    if on_line:
+        on_line(
+            "등록 완료. 다음에 claude를 실행해 Higgsfield MCP 도구를 처음 쓸 때 브라우저 로그인(OAuth)이 한 번 더 필요합니다 "
+            "(Higgsfield 유료 구독이 있어야 합니다)."
+            if ok
+            else "등록이 완료되지 않았습니다."
+        )
     return ok
 
 

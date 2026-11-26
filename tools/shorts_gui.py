@@ -26,8 +26,10 @@ from win_encoding import ensure_utf8_output  # noqa: E402
 from shorts_common import (  # noqa: E402
     build_pipeline_prompt,
     check_claude_auth,
+    check_higgsfield_mcp,
     check_toolchain_status,
     check_youtube,
+    connect_higgsfield_mcp,
     ensure_full_toolchain,
     find_final_mp4,
     get_env_var,
@@ -111,11 +113,13 @@ class ShortsMakerApp(tk.Tk):
         r += 1
 
         ttk.Label(f, text="영상 생성 서비스", font=("", 10, "bold")).grid(row=r, column=0, sticky="w", **pad)
-        self.provider_var = tk.StringVar(value="higgsfield")
-        ttk.Radiobutton(f, text="Higgsfield (API 키)", variable=self.provider_var, value="higgsfield",
+        self.provider_var = tk.StringVar(value="higgsfield_api")
+        ttk.Radiobutton(f, text="Higgsfield (API 키)", variable=self.provider_var, value="higgsfield_api",
                         command=self._toggle_provider).grid(row=r, column=1, sticky="w", **pad)
+        ttk.Radiobutton(f, text="Higgsfield (MCP)", variable=self.provider_var, value="higgsfield_mcp",
+                        command=self._toggle_provider).grid(row=r, column=2, sticky="w", **pad)
         ttk.Radiobutton(f, text="OpenArt (Claude Code MCP)", variable=self.provider_var, value="openart",
-                        command=self._toggle_provider).grid(row=r, column=2, columnspan=2, sticky="w", **pad)
+                        command=self._toggle_provider).grid(row=r, column=3, sticky="w", **pad)
         r += 1
 
         self.higgs_frame = ttk.Frame(f)
@@ -127,6 +131,20 @@ class ShortsMakerApp(tk.Tk):
         self.higgs_secret_var = tk.StringVar()
         ttk.Entry(self.higgs_frame, textvariable=self.higgs_secret_var, show="*", width=24).grid(row=0, column=3, padx=4)
         ttk.Button(self.higgs_frame, text="저장", command=self._save_higgsfield).grid(row=0, column=4, padx=6)
+
+        self.higgs_mcp_frame = ttk.Frame(f)
+        self.higgs_mcp_frame.grid(row=r, column=0, columnspan=4, sticky="w", padx=10)
+        ttk.Label(
+            self.higgs_mcp_frame,
+            text="Higgsfield의 공식 호스팅 MCP(mcp.higgsfield.ai)를 claude CLI에 등록합니다 (API 키 불필요, 유료 구독 계정 필요).\n"
+                 "등록 후 다음에 claude를 쓸 때 브라우저 로그인(OAuth)이 한 번 더 필요합니다.",
+            foreground="#555",
+            justify="left",
+        ).grid(row=0, column=0, columnspan=3, sticky="w", padx=4, pady=4)
+        self.higgs_mcp_status = ttk.Label(self.higgs_mcp_frame, text="확인 중...")
+        self.higgs_mcp_status.grid(row=1, column=0, sticky="w", padx=4)
+        ttk.Button(self.higgs_mcp_frame, text="등록", command=self._connect_higgsfield_mcp).grid(row=1, column=1, padx=6)
+        self.higgs_mcp_frame.grid_remove()
 
         self.openart_frame = ttk.Frame(f)
         self.openart_frame.grid(row=r, column=0, columnspan=4, sticky="w", padx=10)
@@ -210,11 +228,15 @@ class ShortsMakerApp(tk.Tk):
             self.eleven_mcp_frame.grid()
 
     def _toggle_provider(self) -> None:
-        if self.provider_var.get() == "higgsfield":
-            self.openart_frame.grid_remove()
+        choice = self.provider_var.get()
+        self.higgs_frame.grid_remove()
+        self.higgs_mcp_frame.grid_remove()
+        self.openart_frame.grid_remove()
+        if choice == "higgsfield_api":
             self.higgs_frame.grid()
+        elif choice == "higgsfield_mcp":
+            self.higgs_mcp_frame.grid()
         else:
-            self.higgs_frame.grid_remove()
             self.openart_frame.grid()
 
     def _save_eleven_key(self) -> None:
@@ -260,6 +282,7 @@ class ShortsMakerApp(tk.Tk):
 
     def _refresh_status(self) -> None:
         self.eleven_status.config(text="OK" if get_env_var("ELEVENLABS_API_KEY") else "미설정")
+        self.higgs_mcp_status.config(text="등록됨" if check_higgsfield_mcp() else "미등록")
         data = check_youtube()
         ch = (data or {}).get("channel")
         self.youtube_status.config(text=f"연결됨: {ch['title']}" if ch else "미연결")
@@ -313,6 +336,22 @@ class ShortsMakerApp(tk.Tk):
         def worker() -> None:
             try:
                 login_claude_cli(on_line=self._log_install)
+            finally:
+                self._installing_claude = False
+                self.after(0, self._refresh_status)
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _connect_higgsfield_mcp(self) -> None:
+        if self._installing_claude:
+            messagebox.showwarning("진행 중", "다른 설치/로그인 작업이 진행 중입니다.")
+            return
+        self._installing_claude = True
+        self._log_install("=== Higgsfield MCP 등록 시작 ===")
+
+        def worker() -> None:
+            try:
+                connect_higgsfield_mcp(on_line=self._log_install)
             finally:
                 self._installing_claude = False
                 self.after(0, self._refresh_status)

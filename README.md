@@ -16,7 +16,7 @@
 2. `Shorts Maker.exe`를 더블클릭합니다.
 3. **설치** 탭에서:
    - ElevenLabs(음성): API 키 또는 MCP 연동 중 선택
-   - OpenArt 또는 Higgsfield(영상/이미지 생성) 중 선택
+   - 영상 생성: OpenArt(Claude Code MCP), Higgsfield(API 키), Higgsfield(MCP, mcp.higgsfield.ai, 유료 구독 필요) 중 선택. Higgsfield MCP는 "등록" 버튼 하나로 claude CLI에 등록되고, 다음 실행 때 브라우저 로그인(OAuth)만 한 번 더 하면 됩니다.
    - 유튜브 로그인(업로드하려면, 선택 사항)
    - "필수 프로그램" 버튼으로 uv/ffmpeg/Node.js/Claude Code CLI를 자동 설치
    - "Claude 로그인" 버튼으로 `claude` CLI 로그인
